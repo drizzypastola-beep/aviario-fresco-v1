@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviário Fresco — Frangos, Ovos e Patos em Maputo e Matola</title>
+<meta name="description" content="Frangos caipiras, ovos frescos e patos criados naturalmente. Entrega em Maputo e Matola.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <h1>🐔 Aviário Fresco</h1>
+  <button class="carrinho-btn" onclick="abrirCarrinho()">
+    🛒 <span id="contador">0</span>
+  </button>
+</header>
+
+<div class="hero">
+  <h2>Frangos, Ovos e Patos Frescos</h2>
+  <p>Entrega em Maputo e Matola · Ou retirada no aviário</p>
+</div>
+
+<div class="categorias">
+  <button class="cat-btn ativo" onclick="filtrar('todos', this)">Todos</button>
+  <button class="cat-btn" onclick="filtrar('frango', this)">🐔 Frangos</button>
+  <button class="cat-btn" onclick="filtrar('ovo', this)">🥚 Ovos</button>
+  <button class="cat-btn" onclick="filtrar('pato', this)">🦆 Patos</button>
+</div>
+
+<div class="produtos" id="listaProdutos">
+  <p style="text-align:center;color:#999;padding:30px;">A carregar produtos...</p>
+</div>
+
+<div class="galeria-secao" id="galeriaSecao">
+  <h2>🎥 Veja a Nossa Criação</h2>
+  <p class="sub">Fotos e vídeos reais do nosso dia a dia</p>
+  <div id="videoDestaque"></div>
+  <div class="galeria-grid" id="galeriaGrid"></div>
+</div>
+
+<div class="sobre">
+  <h2>Sobre Nós</h2>
+  <p>Somos um aviário familiar dedicado à criação de aves saudáveis e frescas.
+  Os nossos frangos, ovos e patos são criados com alimentação natural e
+  cuidados diários. Entregamos em <strong>Maputo e Matola</strong>.</p>
+</div>
+
+<footer>
+  <p>📍 Maputo e Matola · 📞 +258 87 845 4516</p>
+  <p style="margin-top:8px;">© 2026 Aviário Fresco · <a href="https://wa.me/258878454516" target="_blank">WhatsApp</a></p>
+</footer>
+
+<div class="carrinho-float" id="carrinhoFloat" onclick="abrirCarrinho()">
+  🛒 Ver carrinho · <span id="totalFloat">0 MZN</span>
+</div>
+
+<a class="whatsapp-float" href="https://wa.me/258878454516" target="_blank">💬</a>
+
+<div class="lightbox" id="lightbox" onclick="fecharLightbox(event)">
+  <button class="lightbox-fechar" onclick="fecharLightbox()">✖</button>
+  <div id="lightboxConteudo"></div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-conteudo">
+    <h2>🛒 Seu Carrinho</h2>
+    <div id="conteudoCarrinho"></div>
+    <div id="areaCheckout" style="display:none;">
+      <div class="campo"><label>Nome completo</label><input type="text" id="nome"></div>
+      <div class="campo"><label>Telefone / WhatsApp</label><input type="tel" id="telefone"></div>
+      <div class="campo">
+        <label>Tipo de entrega</label>
+        <select id="tipoEntrega" onchange="toggleEndereco()">
+          <option value="retirada">Retirar no aviário</option>
+          <option value="entrega">Entrega em casa</option>
+        </select>
+      </div>
+      <div class="campo" id="campoEndereco" style="display:none;">
+        <label>Zona</label>
+        <select id="zona">
+          <option value="">Selecione</option>
+          <optgroup label="Maputo">
+            <option>Baixa / Central</option>
+            <option>Polana / Sommerschield</option>
+            <option>Alto Maé / Malhangalene</option>
+            <option>Chamanculo / Xipamanine</option>
+            <option>Mafalala / Maxaquene</option>
+            <option>Costa do Sol</option>
+            <option>Zimpeto / Magoanine</option>
+            <option>Benfica / FPLM</option>
+          </optgroup>
+          <optgroup label="Matola">
+            <option>Matola Centro</option>
+            <option>Matola Rio</option>
+            <option>Machava</option>
+            <option>Infulene</option>
+            <option>Fomento</option>
+            <option>Trevo / Mozal</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="campo"><label>Bairro / rua / referência</label><input type="text" id="endereco"></div>
+      <div class="campo"><label>Data desejada</label><input type="date" id="data"></div>
+      <div class="campo"><label>Observações</label><textarea id="obs" rows="2"></textarea></div>
+      <div class="campo">
+        <label>Pagamento</label>
+        <select id="pagamento">
+          <option>Dinheiro na entrega</option>
+          <option>M-Pesa</option>
+          <option>e-Mola</option>
+        </select>
+      </div>
+      <button class="btn-finalizar" onclick="finalizar()">✅ Enviar Encomenda pelo WhatsApp</button>
+    </div>
+    <button class="btn-fechar" onclick="fecharCarrinho()">Fechar</button>
+  </div>
+</div>
+
+<div class="modal" id="modalQtd">
+  <div class="modal-conteudo">
+    <h2 id="tituloQtd">Adicionar ao carrinho</h2>
+    <div id="conteudoQtd"></div>
+  </div>
+</div>
+
+<script type="module" src="js/loja.js"></script>
+</body>
+</html>
