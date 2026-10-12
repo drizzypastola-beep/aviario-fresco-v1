@@ -50,7 +50,7 @@ function renderizar() {
     const precoTexto = p.soUnidade
       ? `${p.precoUn} MZN / unidade`
       : `${p.precoKg} MZN/kg · ${p.precoUn} MZN/unid.`;
-    const img = p.img || 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=200';
+    const img = normalizarLinkImg(p.img) || 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=200';
     lista.innerHTML += `
       <div class="produto">
         <img src="${img}" alt="${p.nome}">
@@ -271,7 +271,7 @@ function renderGaleria() {
     div.className = 'galeria-item';
     div.onclick = () => abrirLightbox(m);
     if (m.tipo === 'foto') {
-      div.innerHTML = `<img src="${m.url}" alt="${m.titulo || ''}">`;
+      div.innerHTML = `<img src="${normalizarLinkImg(m.url)}" alt="${m.titulo || ''}">`;
     } else {
       const thumb = extrairThumb(m.url);
       div.innerHTML = thumb ? `<img src="${thumb}"><div class="play-icon">▶️</div>` : `<div class="play-icon" style="background:#333;">▶️</div>`;
@@ -282,14 +282,25 @@ function renderGaleria() {
 }
 
 function gerarPlayer(url) {
+  // Google Drive (vídeo)
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch) {
+    return `<iframe src="https://drive.google.com/file/d/${driveMatch[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
+  }
+
+  // YouTube
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     const id = extrairYouTubeId(url);
     return `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>`;
   }
+
+  // Vimeo
   if (url.includes('vimeo.com')) {
     const id = url.split('/').pop();
     return `<iframe src="https://player.vimeo.com/video/${id}" allowfullscreen></iframe>`;
   }
+
+  // Fallback: ficheiro .mp4
   return `<video src="${url}" controls></video>`;
 }
 
@@ -299,14 +310,30 @@ function extrairYouTubeId(url) {
 }
 
 function extrairThumb(url) {
-  const id = extrairYouTubeId(url);
-  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+  // Google Drive
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch) {
+    return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w400`;
+  }
+  // YouTube
+  const ytId = extrairYouTubeId(url);
+  return ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
+}
+
+function normalizarLinkImg(url) {
+  if (!url) return url;
+  // Se for Google Drive, converte para thumbnail
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch) {
+    return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1600`;
+  }
+  return url;
 }
 
 function abrirLightbox(m) {
   const lb = document.getElementById('lightbox');
   const c = document.getElementById('lightboxConteudo');
-  c.innerHTML = m.tipo === 'foto' ? `<img src="${m.url}">` : gerarPlayer(m.url);
+  c.innerHTML = m.tipo === 'foto' ? `<img src="${normalizarLinkImg(m.url)}">` : gerarPlayer(m.url);
   lb.classList.add('ativo');
 }
 
