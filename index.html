@@ -6,6 +6,12 @@
 <title>Aviário Fresco — Frangos, Ovos e Patos em Maputo e Matola</title>
 <meta name="description" content="Frangos caipiras, ovos frescos e patos criados naturalmente. Entrega em Maputo e Matola.">
 <link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f4a300">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Aviário">
 </head>
 <body>
 
@@ -124,6 +130,12 @@
   </div>
 </div>
 
-<script type="module" src="js/loja.js"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+  <script type="module" src="js/loja.js"></script>
 </body>
 </html>
