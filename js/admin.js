@@ -59,6 +59,7 @@ window.adminTab = (tab, btn) => {
   });
 };
 
+// ============ DASHBOARD ============
 function renderDashboard() {
   const pendentes = encomendas.filter(e => e.estado !== 'entregue').length;
   const receita = encomendas.filter(e => e.estado === 'entregue').reduce((s, e) => s + (e.total || 0), 0);
@@ -72,6 +73,7 @@ function renderDashboard() {
   `;
 }
 
+// ============ PRODUTOS ============
 function renderProdutos() {
   let html = `
     <div class="card-admin">
@@ -95,7 +97,13 @@ function renderProdutos() {
         <div><label>Stock</label><input type="number" id="np_stock"></div>
       </div>
       <div class="form-linha full"><div><label>Descrição</label><input id="np_desc"></div></div>
-      <div class="form-linha full"><div><label>URL da imagem</label><input id="np_img"></div></div>
+      <div class="form-linha full">
+        <div>
+          <label>Link da imagem (Google Drive, ImgBB ou URL direto)</label>
+          <input id="np_img" placeholder="https://drive.google.com/file/d/...">
+          <small style="color:#888;font-size:11px;">Cola o link do Google Drive normal — o sistema converte automaticamente.</small>
+        </div>
+      </div>
       <div class="form-linha full">
         <label><input type="checkbox" id="np_sounidade" style="width:auto;"> Vender só por unidade</label>
       </div>
@@ -118,6 +126,7 @@ function renderProdutos() {
 window.adicionarProduto = async () => {
   const nome = document.getElementById('np_nome').value.trim();
   if (!nome) { alert('Nome obrigatório'); return; }
+  const imgInput = document.getElementById('np_img').value;
   await addDoc(collection(db, 'produtos'), {
     nome,
     cat: document.getElementById('np_cat').value,
@@ -126,7 +135,7 @@ window.adicionarProduto = async () => {
     precoUn: parseFloat(document.getElementById('np_precoun').value) || 0,
     pesoMedio: parseFloat(document.getElementById('np_peso').value) || 1,
     stock: parseInt(document.getElementById('np_stock').value) || 0,
-    img: document.getElementById('np_img').value || '',
+    img: converterLink(imgInput),
     soUnidade: document.getElementById('np_sounidade').checked
   });
   ['np_nome','np_precokg','np_precoun','np_peso','np_stock','np_desc','np_img'].forEach(id => document.getElementById(id).value = '');
@@ -139,6 +148,7 @@ window.removerProduto = async (id) => {
   await deleteDoc(doc(db, 'produtos', id));
 };
 
+// ============ STOCK ============
 function renderStock() {
   let html = '<h3 style="margin-bottom:10px;">📈 Atualizar stock</h3>';
   produtos.forEach(p => {
@@ -158,6 +168,7 @@ window.atualizarStock = async (id, valor) => {
   await updateDoc(doc(db, 'produtos', id), { stock: parseInt(valor) || 0 });
 };
 
+// ============ ENCOMENDAS ============
 function renderEncomendas() {
   let html = '<h3 style="margin-bottom:10px;">🛒 Encomendas</h3>';
   if (encomendas.length === 0) html += '<p style="text-align:center;color:#999;padding:20px;">Sem encomendas.</p>';
@@ -184,9 +195,7 @@ function renderEncomendas() {
           <button class="btn-editar" onclick="mudarEstado('${e.id}','pronta')">✔️ Pronta</button>
           <button class="btn-editar" onclick="mudarEstado('${e.id}','entregue')">🎉 Entregue</button>
           <a class="btn-editar" style="text-decoration:none;" target="_blank"
-             href="https://wa.me/${(e.telefone||'').replace(/\\D/g,'')}">
-            💬 WhatsApp
-          </a>
+             href="https://wa.me/${(e.telefone||'').replace(/\\D/g,'')}">💬 WhatsApp</a>
         </div>
       </div>
     `;
@@ -198,35 +207,56 @@ window.mudarEstado = async (id, estado) => {
   await updateDoc(doc(db, 'encomendas', id), { estado });
 };
 
+// ============ GALERIA ============
 function renderGaleria() {
   let html = `
     <div class="card-admin">
       <h3>🎬 Vídeo destaque</h3>
       <div class="form-linha full"><div>
-        <label>Link YouTube / Vimeo</label>
-        <input id="ag_video" value="${videoDestaqueUrl}">
+        <label>Link YouTube, Vimeo ou Google Drive</label>
+        <input id="ag_video" value="${videoDestaqueUrl}" placeholder="https://drive.google.com/file/d/...">
       </div></div>
       <button class="btn-primario" onclick="salvarVideo()">💾 Salvar</button>
     </div>
+
     <div class="card-admin">
-      <h3>➕ Adicionar foto</h3>
-      <div class="form-linha full"><div><label>URL da imagem</label><input id="ag_foto_url"></div></div>
-      <div class="form-linha full"><div><label>Título</label><input id="ag_foto_titulo"></div></div>
-      <button class="btn-primario" onclick="adicionarFoto()">➕ Adicionar foto</button>
+      <h3>📷 Adicionar foto</h3>
+      <div class="form-linha full">
+        <div>
+          <label>Link da imagem (Google Drive, ImgBB ou URL direto)</label>
+          <input id="ag_foto_url" placeholder="https://drive.google.com/file/d/...">
+          <small style="color:#888;font-size:11px;">Cola o link normal do Drive — o sistema converte.</small>
+        </div>
+      </div>
+      <div class="form-linha full"><div>
+        <label>Título (opcional)</label>
+        <input id="ag_foto_titulo" placeholder="Ex.: Nossos frangos">
+      </div></div>
+      <button class="btn-primario" onclick="adicionarFoto()">📤 Adicionar foto</button>
     </div>
+
     <div class="card-admin">
-      <h3>➕ Adicionar vídeo</h3>
-      <div class="form-linha full"><div><label>Link YouTube / Vimeo</label><input id="ag_video_url"></div></div>
-      <div class="form-linha full"><div><label>Título</label><input id="ag_video_titulo"></div></div>
+      <h3>🎥 Adicionar vídeo</h3>
+      <div class="form-linha full"><div>
+        <label>Link YouTube, Vimeo ou Google Drive</label>
+        <input id="ag_video_url" placeholder="https://drive.google.com/file/d/...">
+      </div></div>
+      <div class="form-linha full"><div>
+        <label>Título (opcional)</label>
+        <input id="ag_video_titulo" placeholder="Ex.: Frangos no capoeira">
+      </div></div>
       <button class="btn-primario" onclick="adicionarVideo()">➕ Adicionar vídeo</button>
     </div>
+
     <h3 style="margin:16px 0 10px;">🎥 Mídia (${midia.length})</h3>
   `;
   midia.forEach(m => {
     html += `
       <div class="lista-admin-item">
-        <div class="info"><strong>${m.tipo === 'foto' ? '📷' : '🎥'} ${m.titulo || 'Sem título'}</strong>
-        <small>${m.url.slice(0, 40)}...</small></div>
+        <div class="info">
+          <strong>${m.tipo === 'foto' ? '📷' : '🎥'} ${m.titulo || 'Sem título'}</strong>
+          <small>${(m.url || '').slice(0, 50)}...</small>
+        </div>
         <button class="btn-perigo" onclick="removerMidia('${m.id}')">🗑️</button>
       </div>
     `;
@@ -236,17 +266,20 @@ function renderGaleria() {
 
 window.salvarVideo = async () => {
   const url = document.getElementById('ag_video').value.trim();
-  await setDoc(doc(db, 'config', 'site'), { videoDestaqueUrl: url }, { merge: true });
-  videoDestaqueUrl = url;
+  const urlConvertida = converterLink(url, 'video');
+  await setDoc(doc(db, 'config', 'site'), { videoDestaqueUrl: urlConvertida }, { merge: true });
+  videoDestaqueUrl = urlConvertida;
   alert('✅ Salvo!');
 };
 
 window.adicionarFoto = async () => {
   const url = document.getElementById('ag_foto_url').value.trim();
-  if (!url) { alert('URL obrigatória'); return; }
+  if (!url) { alert('Cola o link da imagem'); return; }
+  const titulo = document.getElementById('ag_foto_titulo').value.trim();
   await addDoc(collection(db, 'galeria'), {
-    tipo: 'foto', url,
-    titulo: document.getElementById('ag_foto_titulo').value.trim(),
+    tipo: 'foto',
+    url: converterLink(url, 'foto'),
+    titulo: titulo || 'Foto',
     criadaEm: serverTimestamp()
   });
   document.getElementById('ag_foto_url').value = '';
@@ -256,10 +289,12 @@ window.adicionarFoto = async () => {
 
 window.adicionarVideo = async () => {
   const url = document.getElementById('ag_video_url').value.trim();
-  if (!url) { alert('URL obrigatória'); return; }
+  if (!url) { alert('Cola o link do vídeo'); return; }
+  const titulo = document.getElementById('ag_video_titulo').value.trim();
   await addDoc(collection(db, 'galeria'), {
-    tipo: 'video', url,
-    titulo: document.getElementById('ag_video_titulo').value.trim(),
+    tipo: 'video',
+    url: converterLink(url, 'video'),
+    titulo: titulo || 'Vídeo',
     criadaEm: serverTimestamp()
   });
   document.getElementById('ag_video_url').value = '';
@@ -271,5 +306,38 @@ window.removerMidia = async (id) => {
   if (!confirm('Remover?')) return;
   await deleteDoc(doc(db, 'galeria', id));
 };
+
+// ============ CONVERSOR DE LINKS ============
+function converterLink(url, tipo = 'auto') {
+  if (!url) return url;
+
+  // Google Drive: /file/d/ID/view
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch) {
+    const id = driveMatch[1];
+    if (tipo === 'video') {
+      return `https://drive.google.com/file/d/${id}/preview`;
+    } else {
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+    }
+  }
+
+  // Google Drive aberto: ?id=ID
+  const driveIdMatch = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+  if (driveIdMatch) {
+    const id = driveIdMatch[1];
+    if (tipo === 'video') {
+      return `https://drive.google.com/file/d/${id}/preview`;
+    } else {
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+    }
+  }
+
+  // Se for outro URL (ImgBB, YouTube, etc.), devolve como está
+  return url;
+}
+
+// Expõe para uso em outros ficheiros
+window.converterLink = converterLink;
 
 renderDashboard();
