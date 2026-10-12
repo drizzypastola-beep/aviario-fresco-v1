@@ -9,8 +9,8 @@ const urls = [
   '/js/firebase.js',
   '/js/loja.js',
   '/js/admin.js',
-  '/img/icon-192.png',
-  '/img/icon-512.png'
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', e => {
