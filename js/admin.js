@@ -3,7 +3,7 @@ import {
   onSnapshot, serverTimestamp, query, orderBy, setDoc
 } from "./firebase.js";
 
-const SENHA = "aviario2025";
+const SENHA = "Pastola13";
 
 window.fazerLogin = () => {
   const s = document.getElementById('senhaAdmin').value;
@@ -126,7 +126,15 @@ function renderProdutos() {
 window.adicionarProduto = async () => {
   const nome = document.getElementById('np_nome').value.trim();
   if (!nome) { alert('Nome obrigatório'); return; }
-  const imgInput = document.getElementById('np_img').value;
+  const imgInput = document.getElementById('np_img').value.trim();
+
+  // Valida o link de imagem (se foi fornecido)
+  let imgFinal = '';
+  if (imgInput) {
+    imgFinal = converterLink(imgInput, 'foto');
+    if (imgFinal === null) return; // aviso já mostrado
+  }
+
   await addDoc(collection(db, 'produtos'), {
     nome,
     cat: document.getElementById('np_cat').value,
@@ -135,7 +143,7 @@ window.adicionarProduto = async () => {
     precoUn: parseFloat(document.getElementById('np_precoun').value) || 0,
     pesoMedio: parseFloat(document.getElementById('np_peso').value) || 1,
     stock: parseInt(document.getElementById('np_stock').value) || 0,
-    img: converterLink(imgInput),
+    img: imgFinal,
     soUnidade: document.getElementById('np_sounidade').checked
   });
   ['np_nome','np_precokg','np_precoun','np_peso','np_stock','np_desc','np_img'].forEach(id => document.getElementById(id).value = '');
@@ -266,7 +274,9 @@ function renderGaleria() {
 
 window.salvarVideo = async () => {
   const url = document.getElementById('ag_video').value.trim();
+  if (!url) { alert('Cola o link do vídeo'); return; }
   const urlConvertida = converterLink(url, 'video');
+  if (urlConvertida === null) return;
   await setDoc(doc(db, 'config', 'site'), { videoDestaqueUrl: urlConvertida }, { merge: true });
   videoDestaqueUrl = urlConvertida;
   alert('✅ Salvo!');
@@ -275,10 +285,14 @@ window.salvarVideo = async () => {
 window.adicionarFoto = async () => {
   const url = document.getElementById('ag_foto_url').value.trim();
   if (!url) { alert('Cola o link da imagem'); return; }
+
+  const urlConvertida = converterLink(url, 'foto');
+  if (urlConvertida === null) return; // já avisou
+
   const titulo = document.getElementById('ag_foto_titulo').value.trim();
   await addDoc(collection(db, 'galeria'), {
     tipo: 'foto',
-    url: converterLink(url, 'foto'),
+    url: urlConvertida,
     titulo: titulo || 'Foto',
     criadaEm: serverTimestamp()
   });
@@ -290,10 +304,14 @@ window.adicionarFoto = async () => {
 window.adicionarVideo = async () => {
   const url = document.getElementById('ag_video_url').value.trim();
   if (!url) { alert('Cola o link do vídeo'); return; }
+
+  const urlConvertida = converterLink(url, 'video');
+  if (urlConvertida === null) return;
+
   const titulo = document.getElementById('ag_video_titulo').value.trim();
   await addDoc(collection(db, 'galeria'), {
     tipo: 'video',
-    url: converterLink(url, 'video'),
+    url: urlConvertida,
     titulo: titulo || 'Vídeo',
     criadaEm: serverTimestamp()
   });
@@ -307,33 +325,61 @@ window.removerMidia = async (id) => {
   await deleteDoc(doc(db, 'galeria', id));
 };
 
-// ============ CONVERSOR DE LINKS ============
+// ============ CONVERSOR DE LINKS (MELHORADO) ============
 function converterLink(url, tipo = 'auto') {
   if (!url) return url;
 
-  // Google Drive: /file/d/ID/view
+  // ❌ Bloqueia encurtadores que não funcionam
+  if (url.includes('share.google') || url.includes('photos.app.goo.gl') || url.includes('goo.gl')) {
+    alert(
+      '⚠️ ATENÇÃO!\n\n' +
+      'O link que colaste NÃO funciona (é um link encurtado).\n\n' +
+      'Como obter o link correto:\n\n' +
+      '1. Abre a app Google Drive\n' +
+      '2. Toca na foto\n' +
+      '3. Toca em ⋮ (3 pontinhos)\n' +
+      '4. Escolhe "Copiar link"\n\n' +
+      'O link deve começar com:\n' +
+      'https://drive.google.com/file/d/\n\n' +
+      'Link que colaste: ' + url.substring(0, 50) + '...'
+    );
+    return null;
+  }
+
+  // ✅ Google Drive: /file/d/ID/view
   const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (driveMatch) {
     const id = driveMatch[1];
     if (tipo === 'video') {
       return `https://drive.google.com/file/d/${id}/preview`;
     } else {
-      return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+      return `https://lh3.googleusercontent.com/d/${id}`;
     }
   }
 
-  // Google Drive aberto: ?id=ID
+  // ✅ Google Drive: /thumbnail?id=ID
+  const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
+  if (driveThumb) {
+    const id = driveThumb[1];
+    if (tipo === 'video') {
+      return `https://drive.google.com/file/d/${id}/preview`;
+    } else {
+      return `https://lh3.googleusercontent.com/d/${id}`;
+    }
+  }
+
+  // ✅ Google Drive: ?id=ID (open?id=)
   const driveIdMatch = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
   if (driveIdMatch) {
     const id = driveIdMatch[1];
     if (tipo === 'video') {
       return `https://drive.google.com/file/d/${id}/preview`;
     } else {
-      return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+      return `https://lh3.googleusercontent.com/d/${id}`;
     }
   }
 
-  // Se for outro URL (ImgBB, YouTube, etc.), devolve como está
+  // ✅ ImgBB, unsplash e outros links diretos → devolve como está
   return url;
 }
 
