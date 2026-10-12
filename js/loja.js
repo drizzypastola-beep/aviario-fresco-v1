@@ -260,7 +260,7 @@ window.finalizar = async () => {
   fecharCarrinho();
 };
 
-// GALERIA
+// ============ GALERIA ============
 function renderGaleria() {
   const vd = document.getElementById('videoDestaque');
   vd.innerHTML = videoDestaqueUrl ? `<div class="video-destaque">${gerarPlayer(videoDestaqueUrl)}</div>` : '';
@@ -283,25 +283,39 @@ function renderGaleria() {
 }
 
 function gerarPlayer(url) {
-  // Google Drive (vídeo)
-  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveMatch) {
-    return `<iframe src="https://drive.google.com/file/d/${driveMatch[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
+  if (!url) return '';
+
+  // ✅ Google Drive: /file/d/ID
+  const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFile) {
+    return `<iframe src="https://drive.google.com/file/d/${driveFile[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
   }
 
-  // YouTube
+  // ✅ Google Drive: /thumbnail?id=ID
+  const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
+  if (driveThumb) {
+    return `<iframe src="https://drive.google.com/file/d/${driveThumb[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
+  }
+
+  // ✅ Google Drive: ?id=ID
+  const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+  if (driveId) {
+    return `<iframe src="https://drive.google.com/file/d/${driveId[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
+  }
+
+  // ✅ YouTube
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     const id = extrairYouTubeId(url);
     return `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>`;
   }
 
-  // Vimeo
+  // ✅ Vimeo
   if (url.includes('vimeo.com')) {
     const id = url.split('/').pop();
     return `<iframe src="https://player.vimeo.com/video/${id}" allowfullscreen></iframe>`;
   }
 
-  // Fallback: ficheiro .mp4
+  // Fallback: ficheiro .mp4 direto
   return `<video src="${url}" controls></video>`;
 }
 
@@ -311,25 +325,55 @@ function extrairYouTubeId(url) {
 }
 
 function extrairThumb(url) {
-  // Google Drive
-  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveMatch) {
-    return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w400`;
+  if (!url) return '';
+
+  // ✅ Google Drive: /file/d/ID
+  const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFile) {
+    return `https://lh3.googleusercontent.com/d/${driveFile[1]}`;
   }
-  // YouTube
+
+  // ✅ Google Drive: /thumbnail?id=ID
+  const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
+  if (driveThumb) {
+    return `https://lh3.googleusercontent.com/d/${driveThumb[1]}`;
+  }
+
+  // ✅ Google Drive: ?id=ID
+  const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+  if (driveId) {
+    return `https://lh3.googleusercontent.com/d/${driveId[1]}`;
+  }
+
+  // ✅ YouTube
   const ytId = extrairYouTubeId(url);
   return ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 }
 
-// ⚠️ FUNÇÃO CORRIGIDA — usa lh3 (formato que funciona)
+// ============ NORMALIZAR LINK DE IMAGEM ============
+// Usada para produtos E galeria — aceita todos os formatos do Drive
 function normalizarLinkImg(url) {
   if (!url) return url;
-  // Google Drive → formato lh3 (funciona para imagens públicas)
-  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveMatch) {
-    return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+
+  // ✅ Google Drive: /file/d/ID
+  const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFile) {
+    return `https://lh3.googleusercontent.com/d/${driveFile[1]}`;
   }
-  // Qualquer outro link → devolve como está
+
+  // ✅ Google Drive: /thumbnail?id=ID
+  const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
+  if (driveThumb) {
+    return `https://lh3.googleusercontent.com/d/${driveThumb[1]}`;
+  }
+
+  // ✅ Google Drive: ?id=ID
+  const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+  if (driveId) {
+    return `https://lh3.googleusercontent.com/d/${driveId[1]}`;
+  }
+
+  // ✅ ImgBB, unsplash e outros links diretos → devolve como está
   return url;
 }
 
