@@ -271,7 +271,8 @@ function renderGaleria() {
     div.className = 'galeria-item';
     div.onclick = () => abrirLightbox(m);
     if (m.tipo === 'foto') {
-      div.innerHTML = `<img src="${normalizarLinkImg(m.url)}" alt="${m.titulo || ''}">`;
+      const img = normalizarLinkImg(m.url) || 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=200';
+      div.innerHTML = `<img src="${img}" alt="${m.titulo || ''}">`;
     } else {
       const thumb = extrairThumb(m.url);
       div.innerHTML = thumb ? `<img src="${thumb}"><div class="play-icon">▶️</div>` : `<div class="play-icon" style="background:#333;">▶️</div>`;
@@ -320,20 +321,27 @@ function extrairThumb(url) {
   return ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 }
 
+// ⚠️ FUNÇÃO CORRIGIDA — usa lh3 (formato que funciona)
 function normalizarLinkImg(url) {
   if (!url) return url;
-  // Se for Google Drive, converte para thumbnail
+  // Google Drive → formato lh3 (funciona para imagens públicas)
   const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (driveMatch) {
-    return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1600`;
+    return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
   }
+  // Qualquer outro link → devolve como está
   return url;
 }
 
 function abrirLightbox(m) {
   const lb = document.getElementById('lightbox');
   const c = document.getElementById('lightboxConteudo');
-  c.innerHTML = m.tipo === 'foto' ? `<img src="${normalizarLinkImg(m.url)}">` : gerarPlayer(m.url);
+  if (m.tipo === 'foto') {
+    const img = normalizarLinkImg(m.url) || 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=200';
+    c.innerHTML = `<img src="${img}">`;
+  } else {
+    c.innerHTML = gerarPlayer(m.url);
+  }
   lb.classList.add('ativo');
 }
 
