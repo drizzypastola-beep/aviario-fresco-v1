@@ -11,5 +11,17 @@ export const CONFIG_AVIARIO = {
   nome: "Aviário Fresco",
   whatsapp: "258878454516",
   telefone: "+258 87 845 4516",
-  cidade: "Maputo e Matola"
+  cidade: "Maputo e Matola",
+
+  // 💳 Pagamentos
+  mpesa: {
+    numero: "845451634",
+    numeroFormatado: "84 545 1634",
+    titular: "Sunanso Francisco"
+  },
+  emola: {
+    numero: "878454516",
+    numeroFormatado: "87 845 4516",
+    titular: "Sunanso Francisco"
+  }
 };
