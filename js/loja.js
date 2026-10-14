@@ -395,4 +395,39 @@ window.fecharLightbox = (e) => {
   document.getElementById('lightboxConteudo').innerHTML = '';
 };
 
+// ============ INSTRUÇÕES DE PAGAMENTO ============
+window.mostrarInstrucoesPagamento = () => {
+  const select = document.getElementById('pagamento');
+  const div = document.getElementById('instrucoesPagamento');
+  if (!select || !div) return;
+
+  const valor = select.value;
+
+  if (valor === 'mpesa') {
+    div.style.display = 'block';
+    div.innerHTML = `
+      <strong>📱 Pagamento por M-Pesa</strong><br><br>
+      1. Envia o valor por M-Pesa para:<br>
+      &nbsp;&nbsp;📞 <strong>${CONFIG_AVIARIO.mpesa.numeroFormatado}</strong><br>
+      &nbsp;&nbsp;👤 <strong>${CONFIG_AVIARIO.mpesa.titular}</strong><br><br>
+      2. Envia o comprovativo pelo WhatsApp:<br>
+      &nbsp;&nbsp;📱 <strong>${CONFIG_AVIARIO.telefone}</strong><br><br>
+      3. Confirma a encomenda. Enviaremos a confirmação após verificar o pagamento.
+    `;
+  } else if (valor === 'emola') {
+    div.style.display = 'block';
+    div.innerHTML = `
+      <strong>📱 Pagamento por e-Mola</strong><br><br>
+      1. Envia o valor por e-Mola para:<br>
+      &nbsp;&nbsp;📞 <strong>${CONFIG_AVIARIO.emola.numeroFormatado}</strong><br>
+      &nbsp;&nbsp;👤 <strong>${CONFIG_AVIARIO.emola.titular}</strong><br><br>
+      2. Envia o comprovativo pelo WhatsApp:<br>
+      &nbsp;&nbsp;📱 <strong>${CONFIG_AVIARIO.telefone}</strong><br><br>
+      3. Confirma a encomenda. Enviaremos a confirmação após verificar o pagamento.
+    `;
+  } else {
+    div.style.display = 'none';
+    div.innerHTML = '';
+  }
+};
 atualizarCarrinho();
