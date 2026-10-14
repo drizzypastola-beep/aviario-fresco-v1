@@ -150,6 +150,10 @@
     navigator.serviceWorker.register('/sw-admin.js');
   }
 </script>
-  <script type="module" src="js/loja.js"></script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+  </script>
 </body>
 </html>
