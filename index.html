@@ -117,11 +117,14 @@
       <div class="campo"><label>Observações</label><textarea id="obs" rows="2"></textarea></div>
       <div class="campo">
         <label>Pagamento</label>
-        <select id="pagamento">
-          <option>Dinheiro na entrega</option>
-          <option>M-Pesa</option>
-          <option>e-Mola</option>
+        <select id="pagamento" onchange="mostrarInstrucoesPagamento()">
+          <option value="dinheiro">💵 Dinheiro na entrega</option>
+          <option value="mpesa">📱 M-Pesa</option>
+          <option value="emola">📱 e-Mola</option>
         </select>
+      </div>
+
+      <div id="instrucoesPagamento" style="display:none; background:#fff8e7; border-left:4px solid #f4a300; padding:14px; border-radius:10px; margin-bottom:12px; font-size:13px; line-height:1.7;">
       </div>
       <button class="btn-finalizar" onclick="finalizar()">✅ Enviar Encomenda pelo WhatsApp</button>
     </div>
