@@ -13,7 +13,6 @@ export const CONFIG_AVIARIO = {
   telefone: "+258 87 845 4516",
   cidade: "Maputo e Matola",
 
-  // 💳 Pagamentos
   mpesa: {
     numero: "845451634",
     numeroFormatado: "84 545 1634",
