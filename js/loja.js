@@ -205,6 +205,57 @@ window.toggleEndereco = () => {
   document.getElementById('campoEndereco').style.display = tipo === 'entrega' ? 'block' : 'none';
 };
 
+// ============ INSTRUÇÕES DE PAGAMENTO ============
+window.mostrarInstrucoesPagamento = () => {
+  const select = document.getElementById('pagamento');
+  const div = document.getElementById('instrucoesPagamento');
+  if (!select || !div) return;
+
+  const valor = select.value;
+
+  if (valor === 'mpesa') {
+    div.style.display = 'block';
+    div.style.background = '#fff8e7';
+    div.style.borderLeft = '4px solid #f4a300';
+    div.style.padding = '14px';
+    div.style.borderRadius = '10px';
+    div.style.marginBottom = '12px';
+    div.style.fontSize = '13px';
+    div.style.lineHeight = '1.7';
+    div.innerHTML = `
+      <strong>📱 Pagamento por M-Pesa</strong><br><br>
+      1. Envia o valor por M-Pesa para:<br>
+      &nbsp;&nbsp;📞 <strong>${CONFIG_AVIARIO.mpesa.numeroFormatado}</strong><br>
+      &nbsp;&nbsp;👤 <strong>${CONFIG_AVIARIO.mpesa.titular}</strong><br><br>
+      2. Envia o comprovativo pelo WhatsApp:<br>
+      &nbsp;&nbsp;📱 <strong>${CONFIG_AVIARIO.telefone}</strong><br><br>
+      3. Confirma a encomenda. Enviaremos a confirmação após verificar o pagamento.
+    `;
+  } else if (valor === 'emola') {
+    div.style.display = 'block';
+    div.style.background = '#fff8e7';
+    div.style.borderLeft = '4px solid #f4a300';
+    div.style.padding = '14px';
+    div.style.borderRadius = '10px';
+    div.style.marginBottom = '12px';
+    div.style.fontSize = '13px';
+    div.style.lineHeight = '1.7';
+    div.innerHTML = `
+      <strong>📱 Pagamento por e-Mola</strong><br><br>
+      1. Envia o valor por e-Mola para:<br>
+      &nbsp;&nbsp;📞 <strong>${CONFIG_AVIARIO.emola.numeroFormatado}</strong><br>
+      &nbsp;&nbsp;👤 <strong>${CONFIG_AVIARIO.emola.titular}</strong><br><br>
+      2. Envia o comprovativo pelo WhatsApp:<br>
+      &nbsp;&nbsp;📱 <strong>${CONFIG_AVIARIO.telefone}</strong><br><br>
+      3. Confirma a encomenda. Enviaremos a confirmação após verificar o pagamento.
+    `;
+  } else {
+    div.style.display = 'none';
+    div.innerHTML = '';
+  }
+};
+
+// ============ FINALIZAR ENCOMENDA ============
 window.finalizar = async () => {
   const nome = document.getElementById('nome').value.trim();
   const tel = document.getElementById('telefone').value.trim();
@@ -218,7 +269,6 @@ window.finalizar = async () => {
   const obs = document.getElementById('obs').value;
   const pagSelect = document.getElementById('pagamento').value;
 
-  // Mapear para texto legível
   let pag = 'Dinheiro na entrega';
   if (pagSelect === 'mpesa') pag = 'M-Pesa';
   if (pagSelect === 'emola') pag = 'e-Mola';
@@ -252,7 +302,6 @@ window.finalizar = async () => {
     console.error('Erro ao guardar:', e);
   }
 
-  // Mensagem WhatsApp
   let msg = `*NOVA ENCOMENDA — ${CONFIG_AVIARIO.nome}* 🐔%0A%0A`;
   msg += `*Cliente:* ${nome}%0A*Telefone:* ${tel}%0A%0A*ITENS:*%0A`;
   carrinho.forEach(i => {
@@ -265,7 +314,6 @@ window.finalizar = async () => {
   if (data) msg += `*Data:* ${data}%0A`;
   msg += `*Pagamento:* ${pag}%0A`;
 
-  // Se for M-Pesa ou e-Mola, adiciona detalhes
   if (pagSelect === 'mpesa') {
     msg += `%0A*📱 Pagamento M-Pesa:*%0A`;
     msg += `Enviar para: ${CONFIG_AVIARIO.mpesa.numeroFormatado}%0A`;
@@ -285,7 +333,6 @@ window.finalizar = async () => {
   atualizarCarrinho();
   fecharCarrinho();
 };
-  
 
 // ============ GALERIA ============
 function renderGaleria() {
@@ -312,37 +359,31 @@ function renderGaleria() {
 function gerarPlayer(url) {
   if (!url) return '';
 
-  // ✅ Google Drive: /file/d/ID
   const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (driveFile) {
     return `<iframe src="https://drive.google.com/file/d/${driveFile[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
   }
 
-  // ✅ Google Drive: /thumbnail?id=ID
   const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
   if (driveThumb) {
     return `<iframe src="https://drive.google.com/file/d/${driveThumb[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
   }
 
-  // ✅ Google Drive: ?id=ID
   const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
   if (driveId) {
     return `<iframe src="https://drive.google.com/file/d/${driveId[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
   }
 
-  // ✅ YouTube
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     const id = extrairYouTubeId(url);
     return `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>`;
   }
 
-  // ✅ Vimeo
   if (url.includes('vimeo.com')) {
     const id = url.split('/').pop();
     return `<iframe src="https://player.vimeo.com/video/${id}" allowfullscreen></iframe>`;
   }
 
-  // Fallback: ficheiro .mp4 direto
   return `<video src="${url}" controls></video>`;
 }
 
@@ -354,53 +395,31 @@ function extrairYouTubeId(url) {
 function extrairThumb(url) {
   if (!url) return '';
 
-  // ✅ Google Drive: /file/d/ID
   const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveFile) {
-    return `https://lh3.googleusercontent.com/d/${driveFile[1]}`;
-  }
+  if (driveFile) return `https://lh3.googleusercontent.com/d/${driveFile[1]}`;
 
-  // ✅ Google Drive: /thumbnail?id=ID
   const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
-  if (driveThumb) {
-    return `https://lh3.googleusercontent.com/d/${driveThumb[1]}`;
-  }
+  if (driveThumb) return `https://lh3.googleusercontent.com/d/${driveThumb[1]}`;
 
-  // ✅ Google Drive: ?id=ID
   const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
-  if (driveId) {
-    return `https://lh3.googleusercontent.com/d/${driveId[1]}`;
-  }
+  if (driveId) return `https://lh3.googleusercontent.com/d/${driveId[1]}`;
 
-  // ✅ YouTube
   const ytId = extrairYouTubeId(url);
   return ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 }
 
-// ============ NORMALIZAR LINK DE IMAGEM ============
-// Usada para produtos E galeria — aceita todos os formatos do Drive
 function normalizarLinkImg(url) {
   if (!url) return url;
 
-  // ✅ Google Drive: /file/d/ID
   const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveFile) {
-    return `https://lh3.googleusercontent.com/d/${driveFile[1]}`;
-  }
+  if (driveFile) return `https://lh3.googleusercontent.com/d/${driveFile[1]}`;
 
-  // ✅ Google Drive: /thumbnail?id=ID
   const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
-  if (driveThumb) {
-    return `https://lh3.googleusercontent.com/d/${driveThumb[1]}`;
-  }
+  if (driveThumb) return `https://lh3.googleusercontent.com/d/${driveThumb[1]}`;
 
-  // ✅ Google Drive: ?id=ID
   const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
-  if (driveId) {
-    return `https://lh3.googleusercontent.com/d/${driveId[1]}`;
-  }
+  if (driveId) return `https://lh3.googleusercontent.com/d/${driveId[1]}`;
 
-  // ✅ ImgBB, unsplash e outros links diretos → devolve como está
   return url;
 }
 
@@ -422,39 +441,4 @@ window.fecharLightbox = (e) => {
   document.getElementById('lightboxConteudo').innerHTML = '';
 };
 
-// ============ INSTRUÇÕES DE PAGAMENTO ============
-window.mostrarInstrucoesPagamento = () => {
-  const select = document.getElementById('pagamento');
-  const div = document.getElementById('instrucoesPagamento');
-  if (!select || !div) return;
-
-  const valor = select.value;
-
-  if (valor === 'mpesa') {
-    div.style.display = 'block';
-    div.innerHTML = `
-      <strong>📱 Pagamento por M-Pesa</strong><br><br>
-      1. Envia o valor por M-Pesa para:<br>
-      &nbsp;&nbsp;📞 <strong>${CONFIG_AVIARIO.mpesa.numeroFormatado}</strong><br>
-      &nbsp;&nbsp;👤 <strong>${CONFIG_AVIARIO.mpesa.titular}</strong><br><br>
-      2. Envia o comprovativo pelo WhatsApp:<br>
-      &nbsp;&nbsp;📱 <strong>${CONFIG_AVIARIO.telefone}</strong><br><br>
-      3. Confirma a encomenda. Enviaremos a confirmação após verificar o pagamento.
-    `;
-  } else if (valor === 'emola') {
-    div.style.display = 'block';
-    div.innerHTML = `
-      <strong>📱 Pagamento por e-Mola</strong><br><br>
-      1. Envia o valor por e-Mola para:<br>
-      &nbsp;&nbsp;📞 <strong>${CONFIG_AVIARIO.emola.numeroFormatado}</strong><br>
-      &nbsp;&nbsp;👤 <strong>${CONFIG_AVIARIO.emola.titular}</strong><br><br>
-      2. Envia o comprovativo pelo WhatsApp:<br>
-      &nbsp;&nbsp;📱 <strong>${CONFIG_AVIARIO.telefone}</strong><br><br>
-      3. Confirma a encomenda. Enviaremos a confirmação após verificar o pagamento.
-    `;
-  } else {
-    div.style.display = 'none';
-    div.innerHTML = '';
-  }
-};
 atualizarCarrinho();
