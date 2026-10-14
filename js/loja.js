@@ -210,13 +210,21 @@ window.finalizar = async () => {
   const tel = document.getElementById('telefone').value.trim();
   if (!nome || !tel) { alert('Preencha nome e telefone'); return; }
   if (carrinho.length === 0) { alert('Carrinho vazio'); return; }
+
   const tipo = document.getElementById('tipoEntrega').value;
   const zona = document.getElementById('zona').value;
   const end = document.getElementById('endereco').value;
   const data = document.getElementById('data').value;
   const obs = document.getElementById('obs').value;
-  const pag = document.getElementById('pagamento').value;
+  const pagSelect = document.getElementById('pagamento').value;
+
+  // Mapear para texto legível
+  let pag = 'Dinheiro na entrega';
+  if (pagSelect === 'mpesa') pag = 'M-Pesa';
+  if (pagSelect === 'emola') pag = 'e-Mola';
+
   const total = carrinho.reduce((s, i) => s + i.subtotal, 0);
+
   try {
     await addDoc(collection(db, 'encomendas'), {
       cliente: nome, telefone: tel,
@@ -231,6 +239,7 @@ window.finalizar = async () => {
       estado: 'nova',
       criadaEm: serverTimestamp()
     });
+
     for (const item of carrinho) {
       const prodRef = doc(db, 'produtos', item.produtoId);
       const prodSnap = await getDoc(prodRef);
@@ -242,6 +251,8 @@ window.finalizar = async () => {
   } catch (e) {
     console.error('Erro ao guardar:', e);
   }
+
+  // Mensagem WhatsApp
   let msg = `*NOVA ENCOMENDA — ${CONFIG_AVIARIO.nome}* 🐔%0A%0A`;
   msg += `*Cliente:* ${nome}%0A*Telefone:* ${tel}%0A%0A*ITENS:*%0A`;
   carrinho.forEach(i => {
@@ -253,12 +264,28 @@ window.finalizar = async () => {
   if (tipo === 'entrega') { msg += `*Zona:* ${zona}%0A*Endereço:* ${end}%0A`; }
   if (data) msg += `*Data:* ${data}%0A`;
   msg += `*Pagamento:* ${pag}%0A`;
+
+  // Se for M-Pesa ou e-Mola, adiciona detalhes
+  if (pagSelect === 'mpesa') {
+    msg += `%0A*📱 Pagamento M-Pesa:*%0A`;
+    msg += `Enviar para: ${CONFIG_AVIARIO.mpesa.numeroFormatado}%0A`;
+    msg += `Titular: ${CONFIG_AVIARIO.mpesa.titular}%0A`;
+    msg += `_Vou enviar o comprovativo a seguir._%0A`;
+  } else if (pagSelect === 'emola') {
+    msg += `%0A*📱 Pagamento e-Mola:*%0A`;
+    msg += `Enviar para: ${CONFIG_AVIARIO.emola.numeroFormatado}%0A`;
+    msg += `Titular: ${CONFIG_AVIARIO.emola.titular}%0A`;
+    msg += `_Vou enviar o comprovativo a seguir._%0A`;
+  }
+
   if (obs) msg += `*Obs:* ${obs}%0A`;
+
   window.open(`https://wa.me/${CONFIG_AVIARIO.whatsapp}?text=${msg}`, '_blank');
   carrinho = [];
   atualizarCarrinho();
   fecharCarrinho();
 };
+  
 
 // ============ GALERIA ============
 function renderGaleria() {
