@@ -273,6 +273,7 @@ window.atualizarTaxaEntrega = () => {
   }
 };
 
+
 // ============ INSTRUÇÕES DE PAGAMENTO ============
 window.mostrarInstrucoesPagamento = () => {
   const select = document.getElementById('pagamento');
@@ -322,6 +323,7 @@ window.mostrarInstrucoesPagamento = () => {
     div.innerHTML = '';
   }
 };
+
 
 // ============ FINALIZAR ENCOMENDA ============
 window.finalizar = async () => {
@@ -415,6 +417,7 @@ window.finalizar = async () => {
   atualizarCarrinho();
   fecharCarrinho();
 };
+
 
 // ============ GALERIA ============
 function renderGaleria() {
