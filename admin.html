@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚙️ Admin — Aviário Fresco</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { padding-bottom: 40px; }
+  .admin-header {
+    background: #333; color: white; padding: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .admin-header h2 { font-size: 18px; }
+  .admin-header button {
+    background: #f4a300; color: white; border: none; padding: 8px 14px;
+    border-radius: 20px; font-weight: bold; cursor: pointer;
+  }
+  .admin-conteudo { padding: 16px; }
+  .admin-tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; }
+  .admin-tab {
+    padding: 10px 16px; border-radius: 10px; border: none; background: white;
+    color: #555; font-weight: bold; cursor: pointer; white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  .admin-tab.ativo { background: #f4a300; color: white; }
+  .card-admin {
+    background: white; border-radius: 14px; padding: 16px;
+    margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .card-admin h3 { color: #e07b00; margin-bottom: 10px; font-size: 16px; }
+  .form-linha { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-linha.full { grid-template-columns: 1fr; }
+  .form-linha label { font-size: 12px; color: #666; display: block; margin-bottom: 3px; font-weight: bold; }
+  .form-linha input, .form-linha select {
+    width: 100%; padding: 9px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;
+  }
+  .lista-admin-item {
+    background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  .lista-admin-item .info { flex: 1; }
+  .lista-admin-item strong { font-size: 14px; }
+  .lista-admin-item small { color: #666; font-size: 12px; display: block; }
+  .btn-primario {
+    background: #f4a300; color: white; border: none; padding: 12px;
+    border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 14px;
+  }
+  .btn-perigo {
+    background: #ffebee; color: #c62828; border: none;
+    padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold;
+  }
+  .btn-editar {
+    background: #e3f2fd; color: #1565c0; border: none;
+    padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 12px;
+    font-weight: bold; margin-right: 4px;
+  }
+  .login-box {
+    max-width: 400px; margin: 80px auto; padding: 30px; background: white;
+    border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .login-box h2 { color: #e07b00; margin-bottom: 16px; text-align: center; }
+  .login-box input {
+    width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px;
+    font-size: 14px; margin-bottom: 12px;
+  }
+  .resumo-dashboard {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
+  }
+  .resumo-card {
+    background: linear-gradient(135deg, #f4a300, #e07b00);
+    color: white; padding: 16px; border-radius: 14px;
+  }
+  .resumo-card h4 { font-size: 12px; opacity: 0.9; margin-bottom: 6px; }
+  .resumo-card .valor { font-size: 22px; font-weight: bold; }
+  .badge-estado {
+    display: inline-block; padding: 3px 8px; border-radius: 8px;
+    font-size: 10px; font-weight: bold;
+  }
+  .estado-nova { background: #fff3e0; color: #e65100; }
+  .estado-confirmada { background: #e3f2fd; color: #1565c0; }
+  .estado-preparacao { background: #fff8e1; color: #f57f17; }
+  .estado-pronta { background: #e8f5e9; color: #2e7d32; }
+  .estado-caminho { background: #f3e5f5; color: #6a1b9a; }
+  .estado-entregue { background: #e0f2f1; color: #00695c; }
+  .estado-cancelada { background: #ffebee; color: #c62828; }
+</style>
+</head>
+<body>
+
+<div id="loginTela">
+  <div class="login-box">
+    <h2>⚙️ Painel Admin</h2>
+    <input type="password" id="senhaAdmin" placeholder="Senha de administrador">
+    <button class="btn-primario" onclick="fazerLogin()">Entrar</button>
+  </div>
+</div>
+
+<div id="adminTela" style="display:none;">
+  <div class="admin-header">
+    <h2>⚙️ Painel Admin</h2>
+    <button onclick="logout()">🚪 Sair</button>
+  </div>
+  <div class="admin-conteudo">
+    <div class="admin-tabs">
+      <button class="admin-tab ativo" onclick="adminTab('dashboard', this)">📊 Painel</button>
+      <button class="admin-tab" onclick="adminTab('produtos', this)">📦 Produtos</button>
+      <button class="admin-tab" onclick="adminTab('stock', this)">📈 Stock</button>
+      <button class="admin-tab" onclick="adminTab('encomendas', this)">🛒 Encomendas</button>
+      <button class="admin-tab" onclick="adminTab('zonas', this)">🚚 Zonas</button>
+      <button class="admin-tab" onclick="adminTab('galeria', this)">🎥 Galeria</button>
+    </div>
+    <div id="tab-dashboard"></div>
+    <div id="tab-produtos" style="display:none;"></div>
+    <div id="tab-stock" style="display:none;"></div>
+    <div id="tab-encomendas" style="display:none;"></div>
+    <div id="tab-zonas" style="display:none;"></div>
+    <div id="tab-galeria" style="display:none;"></div>
+  </div>
+</div>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
