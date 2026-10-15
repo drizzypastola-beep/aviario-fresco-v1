@@ -47,9 +47,10 @@
 
 <div class="sobre">
   <h2>Sobre Nós</h2>
-  <p>Somos um aviário familiar dedicado à criação de aves saudáveis e frescas.
-  Os nossos frangos, ovos e patos são criados com alimentação natural e
-  cuidados diários. Entregamos em <strong>Maputo e Matola</strong>.</p>
+  <p>O <strong>Aviário Fresco</strong> é um projeto familiar dedicado à criação de aves saudáveis em Maputo e Matola. Trabalhamos com dedicação para levar até sua casa <strong>frangos caipiras, ovos frescos, patos e galinhas vivas</strong>, criados com alimentação natural e cuidados diários.</p>
+  <p style="margin-top:12px;">A nossa missão é simples: <strong>qualidade, frescura e confiança</strong>. Cada encomenda é preparada com cuidado para que recebas o melhor da nossa criação.</p>
+  <p style="margin-top:12px;">📍 <strong>Entrega em Maputo e Matola</strong><br>🏠 Ou retirada no nosso espaço</p>
+  <p style="margin-top:16px;color:#e07b00;font-weight:bold;">Obrigado por confiar no nosso trabalho! 🐔</p>
 </div>
 
 <footer>
@@ -78,35 +79,20 @@
       <div class="campo">
         <label>Tipo de entrega</label>
         <select id="tipoEntrega" onchange="toggleEndereco()">
-          <option value="retirada">Retirar no aviário</option>
-          <option value="entrega">Entrega em casa</option>
+          <option value="retirada">🏠 Retirar no aviário (grátis)</option>
+          <option value="entrega">🚚 Entrega em casa</option>
         </select>
       </div>
       <div class="campo" id="campoEndereco" style="display:none;">
-        <label>Zona</label>
-        <select id="zona">
-          <option value="">Selecione</option>
-          <optgroup label="Maputo">
-            <option>Baixa / Central</option>
-            <option>Polana / Sommerschield</option>
-            <option>Alto Maé / Malhangalene</option>
-            <option>Chamanculo / Xipamanine</option>
-            <option>Mafalala / Maxaquene</option>
-            <option>Costa do Sol</option>
-            <option>Zimpeto / Magoanine</option>
-            <option>Benfica / FPLM</option>
-          </optgroup>
-          <optgroup label="Matola">
-            <option>Matola Centro</option>
-            <option>Matola Rio</option>
-            <option>Machava</option>
-            <option>Infulene</option>
-            <option>Fomento</option>
-            <option>Trevo / Mozal</option>
-          </optgroup>
+        <label>Zona de entrega</label>
+        <select id="zona" onchange="atualizarTaxaEntrega()">
+          <option value="">Selecione a zona</option>
         </select>
       </div>
-      <div class="campo"><label>Bairro / rua / referência</label><input type="text" id="endereco"></div>
+      <div class="campo" id="campoEnderecoDetalhe" style="display:none;">
+        <label>Bairro / rua / referência</label>
+        <input type="text" id="endereco" placeholder="Ex.: Rua da Argélia, casa 25">
+      </div>
       <div class="campo"><label>Data desejada</label><input type="date" id="data"></div>
       <div class="campo"><label>Observações</label><textarea id="obs" rows="2"></textarea></div>
       <div class="campo">
@@ -118,6 +104,7 @@
         </select>
       </div>
       <div id="instrucoesPagamento" style="display:none;"></div>
+      <div id="resumoTotal" style="display:none;background:#f7f7f5;padding:14px;border-radius:10px;margin-bottom:12px;font-size:14px;"></div>
       <button class="btn-finalizar" onclick="finalizar()">✅ Enviar Encomenda pelo WhatsApp</button>
     </div>
     <button class="btn-fechar" onclick="fecharCarrinho()">Fechar</button>
@@ -138,4 +125,4 @@
 </script>
 <script type="module" src="js/loja.js"></script>
 </body>
-  </html>
+    </html>                                                       </html>
