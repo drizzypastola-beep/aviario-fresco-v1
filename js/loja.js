@@ -2,7 +2,7 @@ import {
   db, collection, doc, getDoc, updateDoc, addDoc,
   serverTimestamp, onSnapshot
 } from "./firebase.js";
-import { CONFIG_AVIARIO } from "./config.js";
+import { CONFIG_AVIARIO, ZONAS_PADRAO } from "./config.js";
 
 let produtos = [];
 let midia = [];
@@ -10,6 +10,7 @@ let videoDestaqueUrl = '';
 let carrinho = [];
 let filtroAtual = 'todos';
 let produtoEscolhido = null;
+let zonas = [];
 window.tipoEscolhido = 'un';
 
 // Listeners em tempo real
@@ -29,6 +30,33 @@ onSnapshot(doc(db, 'config', 'site'), snap => {
     renderGaleria();
   }
 }, err => console.error('Erro config:', err));
+
+// Carregar zonas (do Firestore ou padrão)
+onSnapshot(doc(db, 'config', 'zonas'), snap => {
+  if (snap.exists() && snap.data().lista) {
+    zonas = snap.data().lista;
+  } else {
+    zonas = ZONAS_PADRAO;
+  }
+  preencherZonas();
+}, err => {
+  zonas = ZONAS_PADRAO;
+  preencherZonas();
+});
+
+function preencherZonas() {
+  const select = document.getElementById('zona');
+  if (!select) return;
+  select.innerHTML = '<option value="">Selecione a zona</option>';
+  zonas.forEach(z => {
+    const opt = document.createElement('option');
+    opt.value = z.id;
+    opt.textContent = `${z.nome} (${z.taxa} MZN)`;
+    opt.dataset.taxa = z.taxa;
+    opt.dataset.nome = z.nome;
+    select.appendChild(opt);
+  });
+}
 
 // LOJA
 function renderizar() {
@@ -202,7 +230,47 @@ window.fecharCarrinho = () => {
 
 window.toggleEndereco = () => {
   const tipo = document.getElementById('tipoEntrega').value;
-  document.getElementById('campoEndereco').style.display = tipo === 'entrega' ? 'block' : 'none';
+  const mostrar = tipo === 'entrega';
+  document.getElementById('campoEndereco').style.display = mostrar ? 'block' : 'none';
+  document.getElementById('campoEnderecoDetalhe').style.display = mostrar ? 'block' : 'none';
+  atualizarTaxaEntrega();
+};
+
+window.atualizarTaxaEntrega = () => {
+  const select = document.getElementById('zona');
+  const resumo = document.getElementById('resumoTotal');
+  const tipo = document.getElementById('tipoEntrega').value;
+
+  const subtotal = carrinho.reduce((s, i) => s + i.subtotal, 0);
+  let taxa = 0;
+  let zonaNome = '';
+
+  if (tipo === 'entrega' && select.value) {
+    const opt = select.options[select.selectedIndex];
+    taxa = parseFloat(opt.dataset.taxa) || 0;
+    zonaNome = opt.dataset.nome || '';
+  }
+
+  const total = subtotal + taxa;
+
+  if (subtotal > 0) {
+    resumo.style.display = 'block';
+    resumo.innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span>Subtotal:</span><strong>${subtotal} MZN</strong>
+      </div>
+      ${taxa > 0 ? `
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span>🚚 Entrega (${zonaNome}):</span><strong>${taxa} MZN</strong>
+        </div>
+      ` : ''}
+      <div style="display:flex;justify-content:space-between;border-top:2px solid #e07b00;padding-top:8px;margin-top:8px;font-size:16px;color:#e07b00;">
+        <span>TOTAL:</span><strong>${total} MZN</strong>
+      </div>
+    `;
+  } else {
+    resumo.style.display = 'none';
+  }
 };
 
 // ============ INSTRUÇÕES DE PAGAMENTO ============
@@ -229,7 +297,7 @@ window.mostrarInstrucoesPagamento = () => {
       &nbsp;&nbsp;👤 <strong>${CONFIG_AVIARIO.mpesa.titular}</strong><br><br>
       2. Envia o comprovativo pelo WhatsApp:<br>
       &nbsp;&nbsp;📱 <strong>${CONFIG_AVIARIO.telefone}</strong><br><br>
-      3. Confirma a encomenda. Enviaremos a confirmação após verificar o pagamento.
+      3. Confirma a encomenda.
     `;
   } else if (valor === 'emola') {
     div.style.display = 'block';
@@ -247,7 +315,7 @@ window.mostrarInstrucoesPagamento = () => {
       &nbsp;&nbsp;👤 <strong>${CONFIG_AVIARIO.emola.titular}</strong><br><br>
       2. Envia o comprovativo pelo WhatsApp:<br>
       &nbsp;&nbsp;📱 <strong>${CONFIG_AVIARIO.telefone}</strong><br><br>
-      3. Confirma a encomenda. Enviaremos a confirmação após verificar o pagamento.
+      3. Confirma a encomenda.
     `;
   } else {
     div.style.display = 'none';
@@ -263,25 +331,37 @@ window.finalizar = async () => {
   if (carrinho.length === 0) { alert('Carrinho vazio'); return; }
 
   const tipo = document.getElementById('tipoEntrega').value;
-  const zona = document.getElementById('zona').value;
+  const zonaSelect = document.getElementById('zona');
   const end = document.getElementById('endereco').value;
   const data = document.getElementById('data').value;
   const obs = document.getElementById('obs').value;
   const pagSelect = document.getElementById('pagamento').value;
 
+  let zonaNome = '';
+  let taxa = 0;
+  if (tipo === 'entrega') {
+    if (!zonaSelect.value) { alert('Escolha a zona de entrega'); return; }
+    const opt = zonaSelect.options[zonaSelect.selectedIndex];
+    zonaNome = opt.dataset.nome;
+    taxa = parseFloat(opt.dataset.taxa) || 0;
+  }
+
   let pag = 'Dinheiro na entrega';
   if (pagSelect === 'mpesa') pag = 'M-Pesa';
   if (pagSelect === 'emola') pag = 'e-Mola';
 
-  const total = carrinho.reduce((s, i) => s + i.subtotal, 0);
+  const subtotal = carrinho.reduce((s, i) => s + i.subtotal, 0);
+  const total = subtotal + taxa;
 
   try {
     await addDoc(collection(db, 'encomendas'), {
       cliente: nome, telefone: tel,
       itens: carrinho.map(i => ({ nome: i.nome, tipo: i.tipo, qtd: i.qtd, preco: i.preco, subtotal: i.subtotal, obs: i.obs || '' })),
+      subtotal,
+      taxaEntrega: taxa,
+      zona: zonaNome,
       total,
       tipoEntrega: tipo,
-      zona: tipo === 'entrega' ? zona : '',
       endereco: tipo === 'entrega' ? end : '',
       dataDesejada: data,
       observacoes: obs,
@@ -308,9 +388,11 @@ window.finalizar = async () => {
     msg += `• ${i.nome} — ${i.tipo === 'kg' ? i.qtd + 'kg' : i.qtd + ' unid.'} = ${i.subtotal} MZN%0A`;
     if (i.obs) msg += `   _Obs: ${i.obs}_%0A`;
   });
-  msg += `%0A*Total estimado:* ${total} MZN%0A`;
+  msg += `%0A*Subtotal:* ${subtotal} MZN%0A`;
+  if (taxa > 0) msg += `*🚚 Entrega (${zonaNome}):* ${taxa} MZN%0A`;
+  msg += `*TOTAL:* ${total} MZN%0A%0A`;
   msg += `*Entrega:* ${tipo === 'entrega' ? 'Entrega' : 'Retirada'}%0A`;
-  if (tipo === 'entrega') { msg += `*Zona:* ${zona}%0A*Endereço:* ${end}%0A`; }
+  if (tipo === 'entrega') { msg += `*Zona:* ${zonaNome}%0A*Endereço:* ${end}%0A`; }
   if (data) msg += `*Data:* ${data}%0A`;
   msg += `*Pagamento:* ${pag}%0A`;
 
@@ -358,32 +440,20 @@ function renderGaleria() {
 
 function gerarPlayer(url) {
   if (!url) return '';
-
   const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveFile) {
-    return `<iframe src="https://drive.google.com/file/d/${driveFile[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
-  }
-
+  if (driveFile) return `<iframe src="https://drive.google.com/file/d/${driveFile[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
   const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
-  if (driveThumb) {
-    return `<iframe src="https://drive.google.com/file/d/${driveThumb[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
-  }
-
+  if (driveThumb) return `<iframe src="https://drive.google.com/file/d/${driveThumb[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
   const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
-  if (driveId) {
-    return `<iframe src="https://drive.google.com/file/d/${driveId[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
-  }
-
+  if (driveId) return `<iframe src="https://drive.google.com/file/d/${driveId[1]}/preview" allow="autoplay" allowfullscreen></iframe>`;
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     const id = extrairYouTubeId(url);
     return `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>`;
   }
-
   if (url.includes('vimeo.com')) {
     const id = url.split('/').pop();
     return `<iframe src="https://player.vimeo.com/video/${id}" allowfullscreen></iframe>`;
   }
-
   return `<video src="${url}" controls></video>`;
 }
 
@@ -394,32 +464,24 @@ function extrairYouTubeId(url) {
 
 function extrairThumb(url) {
   if (!url) return '';
-
   const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (driveFile) return `https://lh3.googleusercontent.com/d/${driveFile[1]}`;
-
   const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
   if (driveThumb) return `https://lh3.googleusercontent.com/d/${driveThumb[1]}`;
-
   const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
   if (driveId) return `https://lh3.googleusercontent.com/d/${driveId[1]}`;
-
   const ytId = extrairYouTubeId(url);
   return ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 }
 
 function normalizarLinkImg(url) {
   if (!url) return url;
-
   const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (driveFile) return `https://lh3.googleusercontent.com/d/${driveFile[1]}`;
-
   const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
   if (driveThumb) return `https://lh3.googleusercontent.com/d/${driveThumb[1]}`;
-
   const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
   if (driveId) return `https://lh3.googleusercontent.com/d/${driveId[1]}`;
-
   return url;
 }
 
