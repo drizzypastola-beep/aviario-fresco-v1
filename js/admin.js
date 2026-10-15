@@ -1,9 +1,10 @@
 import {
   db, collection, doc, updateDoc, deleteDoc, addDoc,
-  onSnapshot, serverTimestamp, query, orderBy, setDoc
+  onSnapshot, serverTimestamp, query, orderBy, setDoc, getDoc
 } from "./firebase.js";
+import { ZONAS_PADRAO } from "./config.js";
 
-const SENHA = "Pastola13";
+const SENHA = "aviario2025";
 
 window.fazerLogin = () => {
   const s = document.getElementById('senhaAdmin').value;
@@ -31,6 +32,7 @@ if (sessionStorage.getItem('adminLogado') === '1') abrirPainel();
 let produtos = [];
 let midia = [];
 let encomendas = [];
+let zonas = [];
 let videoDestaqueUrl = '';
 
 function iniciarListeners() {
@@ -49,25 +51,42 @@ function iniciarListeners() {
   onSnapshot(doc(db, 'config', 'site'), snap => {
     if (snap.exists()) videoDestaqueUrl = snap.data().videoDestaqueUrl || '';
   });
+  onSnapshot(doc(db, 'config', 'zonas'), snap => {
+    if (snap.exists() && snap.data().lista) {
+      zonas = snap.data().lista;
+    } else {
+      zonas = ZONAS_PADRAO;
+    }
+    renderZonas();
+  });
 }
 
 window.adminTab = (tab, btn) => {
   document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('ativo'));
   btn.classList.add('ativo');
-  ['dashboard','produtos','stock','encomendas','galeria'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  ['dashboard','produtos','stock','encomendas','zonas','galeria'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
   });
 };
 
 // ============ DASHBOARD ============
 function renderDashboard() {
-  const pendentes = encomendas.filter(e => e.estado !== 'entregue').length;
+  const pendentes = encomendas.filter(e => e.estado !== 'entregue' && e.estado !== 'cancelada').length;
   const receita = encomendas.filter(e => e.estado === 'entregue').reduce((s, e) => s + (e.total || 0), 0);
+
+  // Hoje
+  const hoje = new Date().toDateString();
+  const encomendasHoje = encomendas.filter(e => {
+    const d = e.criadaEm?.toDate ? e.criadaEm.toDate() : null;
+    return d && d.toDateString() === hoje;
+  }).length;
+
   document.getElementById('tab-dashboard').innerHTML = `
     <div class="resumo-dashboard">
-      <div class="resumo-card"><h4>Encomendas</h4><div class="valor">${encomendas.length}</div></div>
+      <div class="resumo-card"><h4>Encomendas hoje</h4><div class="valor">${encomendasHoje}</div></div>
       <div class="resumo-card"><h4>Pendentes</h4><div class="valor">${pendentes}</div></div>
-      <div class="resumo-card"><h4>Receita</h4><div class="valor">${receita} MZN</div></div>
+      <div class="resumo-card"><h4>Receita total</h4><div class="valor">${receita} MZN</div></div>
       <div class="resumo-card"><h4>Produtos</h4><div class="valor">${produtos.length}</div></div>
     </div>
   `;
@@ -101,7 +120,6 @@ function renderProdutos() {
         <div>
           <label>Link da imagem (Google Drive, ImgBB ou URL direto)</label>
           <input id="np_img" placeholder="https://drive.google.com/file/d/...">
-          <small style="color:#888;font-size:11px;">Cola o link do Google Drive normal — o sistema converte automaticamente.</small>
         </div>
       </div>
       <div class="form-linha full">
@@ -127,14 +145,11 @@ window.adicionarProduto = async () => {
   const nome = document.getElementById('np_nome').value.trim();
   if (!nome) { alert('Nome obrigatório'); return; }
   const imgInput = document.getElementById('np_img').value.trim();
-
-  // Valida o link de imagem (se foi fornecido)
   let imgFinal = '';
   if (imgInput) {
     imgFinal = converterLink(imgInput, 'foto');
-    if (imgFinal === null) return; // aviso já mostrado
+    if (imgFinal === null) return;
   }
-
   await addDoc(collection(db, 'produtos'), {
     nome,
     cat: document.getElementById('np_cat').value,
@@ -180,28 +195,45 @@ window.atualizarStock = async (id, valor) => {
 function renderEncomendas() {
   let html = '<h3 style="margin-bottom:10px;">🛒 Encomendas</h3>';
   if (encomendas.length === 0) html += '<p style="text-align:center;color:#999;padding:20px;">Sem encomendas.</p>';
-  encomendas.forEach(e => {
+
+  // Ordenar por data (mais recentes primeiro)
+  const ordenadas = [...encomendas].sort((a, b) => {
+    const da = a.criadaEm?.toDate ? a.criadaEm.toDate() : 0;
+    const dbb = b.criadaEm?.toDate ? b.criadaEm.toDate() : 0;
+    return dbb - da;
+  });
+
+  ordenadas.forEach(e => {
     const estado = e.estado || 'nova';
     const data = e.criadaEm?.toDate ? e.criadaEm.toDate().toLocaleString('pt-MZ') : '—';
     html += `
       <div class="card-admin">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
           <strong>${e.cliente}</strong>
-          <span class="badge-estado estado-${estado}">${estado.toUpperCase()}</span>
+          <span class="badge-estado estado-${estado}">${traduzEstado(estado)}</span>
         </div>
         <div style="font-size:12px;color:#666;margin-bottom:8px;">📞 ${e.telefone} · ${data}</div>
         <div style="font-size:13px;margin-bottom:8px;">
           ${(e.itens||[]).map(i => `• ${i.nome} (${i.tipo === 'kg' ? i.qtd + 'kg' : i.qtd + 'un'})`).join('<br>')}
         </div>
-        <div style="font-weight:bold;color:#e07b00;margin-bottom:8px;">Total: ${e.total} MZN</div>
+        <div style="font-size:12px;color:#666;margin-bottom:8px;">
+          Subtotal: ${e.subtotal || e.total} MZN
+          ${e.taxaEntrega ? `+ Entrega: ${e.taxaEntrega} MZN` : ''}
+        </div>
+        <div style="font-weight:bold;color:#e07b00;margin-bottom:8px;">TOTAL: ${e.total} MZN</div>
         <div style="font-size:12px;color:#666;margin-bottom:10px;">
           ${e.tipoEntrega === 'entrega' ? '🚚 ' + (e.zona || '') + ' — ' + (e.endereco || '') : '🏠 Retirada'}
           ${e.pagamento ? '<br>💳 ' + e.pagamento : ''}
+          ${e.dataDesejada ? '<br>📅 ' + e.dataDesejada : ''}
+          ${e.observacoes ? '<br>📝 ' + e.observacoes : ''}
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-editar" onclick="mudarEstado('${e.id}','confirmada')">✅ Confirmar</button>
-          <button class="btn-editar" onclick="mudarEstado('${e.id}','pronta')">✔️ Pronta</button>
+          <button class="btn-editar" onclick="mudarEstado('${e.id}','preparacao')">👨‍🍳 Preparar</button>
+          <button class="btn-editar" onclick="mudarEstado('${e.id}','pronta')">📦 Pronta</button>
+          <button class="btn-editar" onclick="mudarEstado('${e.id}','caminho')">🚚 A caminho</button>
           <button class="btn-editar" onclick="mudarEstado('${e.id}','entregue')">🎉 Entregue</button>
+          <button class="btn-perigo" onclick="mudarEstado('${e.id}','cancelada')">❌ Cancelar</button>
           <a class="btn-editar" style="text-decoration:none;" target="_blank"
              href="https://wa.me/${(e.telefone||'').replace(/\\D/g,'')}">💬 WhatsApp</a>
         </div>
@@ -211,8 +243,88 @@ function renderEncomendas() {
   document.getElementById('tab-encomendas').innerHTML = html;
 }
 
+function traduzEstado(estado) {
+  const map = {
+    'nova': '🆕 NOVA',
+    'confirmada': '✅ CONFIRMADA',
+    'preparacao': '👨‍🍳 EM PREPARAÇÃO',
+    'pronta': '📦 PRONTA',
+    'caminho': '🚚 A CAMINHO',
+    'entregue': '🎉 ENTREGUE',
+    'cancelada': '❌ CANCELADA'
+  };
+  return map[estado] || estado.toUpperCase();
+}
+
 window.mudarEstado = async (id, estado) => {
   await updateDoc(doc(db, 'encomendas', id), { estado });
+};
+
+// ============ ZONAS ============
+function renderZonas() {
+  let html = `
+    <div class="card-admin">
+      <h3>🚚 Gerir zonas e taxas de entrega</h3>
+      <p style="font-size:13px;color:#666;margin-bottom:12px;">
+        Adiciona, edita ou remove zonas. A taxa é o valor cobrado ao cliente pela entrega nessa zona.
+      </p>
+      <div class="form-linha">
+        <div><label>Nome da zona</label><input id="nz_nome" placeholder="Ex.: Machava"></div>
+        <div><label>Taxa de entrega (MZN)</label><input type="number" id="nz_taxa" placeholder="Ex.: 80"></div>
+      </div>
+      <button class="btn-primario" onclick="adicionarZona()">➕ Adicionar zona</button>
+    </div>
+    <h3 style="margin:16px 0 10px;">📋 Zonas configuradas (${zonas.length})</h3>
+  `;
+
+  zonas.forEach(z => {
+    html += `
+      <div class="lista-admin-item">
+        <div class="info">
+          <strong>${z.nome}</strong>
+          <small>Taxa: ${z.taxa} MZN</small>
+        </div>
+        <input type="number" value="${z.taxa}" min="0"
+               style="width:80px;padding:6px;border:1px solid #ddd;border-radius:8px;text-align:center;"
+               onchange="atualizarTaxaZona('${z.id}', this.value)">
+        <button class="btn-perigo" onclick="removerZona('${z.id}')">🗑️</button>
+      </div>
+    `;
+  });
+
+  document.getElementById('tab-zonas').innerHTML = html;
+}
+
+window.adicionarZona = async () => {
+  const nome = document.getElementById('nz_nome').value.trim();
+  const taxa = parseFloat(document.getElementById('nz_taxa').value) || 0;
+  if (!nome) { alert('Nome obrigatório'); return; }
+
+  const novaZona = {
+    id: 'zona-' + Date.now(),
+    nome: nome,
+    taxa: taxa
+  };
+
+  zonas.push(novaZona);
+  await setDoc(doc(db, 'config', 'zonas'), { lista: zonas });
+
+  document.getElementById('nz_nome').value = '';
+  document.getElementById('nz_taxa').value = '';
+  alert('✅ Zona adicionada!');
+};
+
+window.atualizarTaxaZona = async (id, valor) => {
+  const zona = zonas.find(z => z.id === id);
+  if (!zona) return;
+  zona.taxa = parseFloat(valor) || 0;
+  await setDoc(doc(db, 'config', 'zonas'), { lista: zonas });
+};
+
+window.removerZona = async (id) => {
+  if (!confirm('Remover esta zona?')) return;
+  zonas = zonas.filter(z => z.id !== id);
+  await setDoc(doc(db, 'config', 'zonas'), { lista: zonas });
 };
 
 // ============ GALERIA ============
@@ -233,7 +345,6 @@ function renderGaleria() {
         <div>
           <label>Link da imagem (Google Drive, ImgBB ou URL direto)</label>
           <input id="ag_foto_url" placeholder="https://drive.google.com/file/d/...">
-          <small style="color:#888;font-size:11px;">Cola o link normal do Drive — o sistema converte.</small>
         </div>
       </div>
       <div class="form-linha full"><div>
@@ -285,10 +396,8 @@ window.salvarVideo = async () => {
 window.adicionarFoto = async () => {
   const url = document.getElementById('ag_foto_url').value.trim();
   if (!url) { alert('Cola o link da imagem'); return; }
-
   const urlConvertida = converterLink(url, 'foto');
-  if (urlConvertida === null) return; // já avisou
-
+  if (urlConvertida === null) return;
   const titulo = document.getElementById('ag_foto_titulo').value.trim();
   await addDoc(collection(db, 'galeria'), {
     tipo: 'foto',
@@ -304,10 +413,8 @@ window.adicionarFoto = async () => {
 window.adicionarVideo = async () => {
   const url = document.getElementById('ag_video_url').value.trim();
   if (!url) { alert('Cola o link do vídeo'); return; }
-
   const urlConvertida = converterLink(url, 'video');
   if (urlConvertida === null) return;
-
   const titulo = document.getElementById('ag_video_titulo').value.trim();
   await addDoc(collection(db, 'galeria'), {
     tipo: 'video',
@@ -325,65 +432,39 @@ window.removerMidia = async (id) => {
   await deleteDoc(doc(db, 'galeria', id));
 };
 
-// ============ CONVERSOR DE LINKS (MELHORADO) ============
+// ============ CONVERSOR DE LINKS ============
 function converterLink(url, tipo = 'auto') {
   if (!url) return url;
 
-  // ❌ Bloqueia encurtadores que não funcionam
   if (url.includes('share.google') || url.includes('photos.app.goo.gl') || url.includes('goo.gl')) {
-    alert(
-      '⚠️ ATENÇÃO!\n\n' +
-      'O link que colaste NÃO funciona (é um link encurtado).\n\n' +
-      'Como obter o link correto:\n\n' +
-      '1. Abre a app Google Drive\n' +
-      '2. Toca na foto\n' +
-      '3. Toca em ⋮ (3 pontinhos)\n' +
-      '4. Escolhe "Copiar link"\n\n' +
-      'O link deve começar com:\n' +
-      'https://drive.google.com/file/d/\n\n' +
-      'Link que colaste: ' + url.substring(0, 50) + '...'
-    );
+    alert('⚠️ Link encurtado não funciona. Usa o link completo (drive.google.com/file/d/...)');
     return null;
   }
 
-  // ✅ Google Drive: /file/d/ID/view
-  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveMatch) {
-    const id = driveMatch[1];
-    if (tipo === 'video') {
-      return `https://drive.google.com/file/d/${id}/preview`;
-    } else {
-      return `https://lh3.googleusercontent.com/d/${id}`;
-    }
+  const driveFile = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFile) {
+    const id = driveFile[1];
+    if (tipo === 'video') return `https://drive.google.com/file/d/${id}/preview`;
+    return `https://lh3.googleusercontent.com/d/${id}`;
   }
 
-  // ✅ Google Drive: /thumbnail?id=ID
   const driveThumb = url.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
   if (driveThumb) {
     const id = driveThumb[1];
-    if (tipo === 'video') {
-      return `https://drive.google.com/file/d/${id}/preview`;
-    } else {
-      return `https://lh3.googleusercontent.com/d/${id}`;
-    }
+    if (tipo === 'video') return `https://drive.google.com/file/d/${id}/preview`;
+    return `https://lh3.googleusercontent.com/d/${id}`;
   }
 
-  // ✅ Google Drive: ?id=ID (open?id=)
-  const driveIdMatch = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
-  if (driveIdMatch) {
-    const id = driveIdMatch[1];
-    if (tipo === 'video') {
-      return `https://drive.google.com/file/d/${id}/preview`;
-    } else {
-      return `https://lh3.googleusercontent.com/d/${id}`;
-    }
+  const driveId = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+  if (driveId) {
+    const id = driveId[1];
+    if (tipo === 'video') return `https://drive.google.com/file/d/${id}/preview`;
+    return `https://lh3.googleusercontent.com/d/${id}`;
   }
 
-  // ✅ ImgBB, unsplash e outros links diretos → devolve como está
   return url;
 }
 
-// Expõe para uso em outros ficheiros
 window.converterLink = converterLink;
 
 renderDashboard();
