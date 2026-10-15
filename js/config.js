@@ -25,6 +25,7 @@ export const CONFIG_AVIARIO = {
   }
 };
 
+
 // Zonas padrão (serão editáveis no admin)
 export const ZONAS_PADRAO = [
   // Maputo
@@ -43,6 +44,7 @@ export const ZONAS_PADRAO = [
   { id: "maputo-3-fevereiro", nome: "3 de Fevereiro", taxa: 150 },
   { id: "maputo-patricio", nome: "Patrício Lumumba", taxa: 130 },
 
+  
   // Matola
   { id: "matola-centro", nome: "Matola Centro", taxa: 100 },
   { id: "matola-rio", nome: "Matola Rio", taxa: 150 },
