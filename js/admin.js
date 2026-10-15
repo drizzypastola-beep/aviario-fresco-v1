@@ -4,10 +4,10 @@ import {
 } from "./firebase.js";
 import { ZONAS_PADRAO } from "./config.js";
 
-const SENHA = "aviario2025";
+const SENHA = "Pastola13";
 
-let senhaZerar = "zerar2025";
-let senhaApagar = "apagar2025";
+let senhaZerar = "Pastola5";
+let senhaApagar = "Pastola8";
 let dataZeramento = null;
 
 window.fazerLogin = () => {
