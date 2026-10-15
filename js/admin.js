@@ -70,7 +70,6 @@ window.adminTab = (tab, btn) => {
   });
 };
 
-
 // ============ DASHBOARD ============
 function renderDashboard() {
   const pendentes = encomendas.filter(e => e.estado !== 'entregue' && e.estado !== 'cancelada').length;
@@ -92,7 +91,6 @@ function renderDashboard() {
     </div>
   `;
 }
-
 
 // ============ PRODUTOS ============
 function renderProdutos() {
@@ -173,7 +171,6 @@ window.removerProduto = async (id) => {
   await deleteDoc(doc(db, 'produtos', id));
 };
 
-
 // ============ STOCK ============
 function renderStock() {
   let html = '<h3 style="margin-bottom:10px;">📈 Atualizar stock</h3>';
@@ -193,7 +190,6 @@ function renderStock() {
 window.atualizarStock = async (id, valor) => {
   await updateDoc(doc(db, 'produtos', id), { stock: parseInt(valor) || 0 });
 };
-
 
 // ============ ENCOMENDAS ============
 function renderEncomendas() {
@@ -264,7 +260,6 @@ window.mudarEstado = async (id, estado) => {
   await updateDoc(doc(db, 'encomendas', id), { estado });
 };
 
-
 // ============ ZONAS ============
 function renderZonas() {
   let html = `
@@ -331,7 +326,6 @@ window.removerZona = async (id) => {
   zonas = zonas.filter(z => z.id !== id);
   await setDoc(doc(db, 'config', 'zonas'), { lista: zonas });
 };
-
 
 // ============ GALERIA ============
 function renderGaleria() {
@@ -437,7 +431,6 @@ window.removerMidia = async (id) => {
   if (!confirm('Remover?')) return;
   await deleteDoc(doc(db, 'galeria', id));
 };
-
 
 // ============ CONVERSOR DE LINKS ============
 function converterLink(url, tipo = 'auto') {
